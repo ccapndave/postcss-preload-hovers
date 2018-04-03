@@ -1,0 +1,38 @@
+{
+  "name": "postcss-preload-hovers",
+  "version": "0.0.0",
+  "description": "A plugin to search for images with the :hover pseudo-class and generate links to preload them",
+  "keywords": [
+    "postcss",
+    "css",
+    "postcss-plugin",
+    "preload"
+  ],
+  "author": "Dave Keen <dev@ruffness.com>",
+  "license": "MIT",
+  "repository": "ccapndave/postcss-preload-hovers",
+  "bugs": {
+    "url": "https://github.com/ccapndave/postcss-preload-hovers/issues"
+  },
+  "homepage": "https://github.com/ccapndave/postcss-preload-hovers",
+  "dependencies": {
+    "postcss": "^6.0.16"
+  },
+  "devDependencies": {
+    "eslint": "^4.18.2",
+    "eslint-config-postcss": "^2.0.2",
+    "jest": "^22.4.2"
+  },
+  "scripts": {
+    "test": "jest"
+  },
+  "eslintConfig": {
+    "extends": "eslint-config-postcss/es5",
+    "env": {
+      "jest": true
+    }
+  },
+  "jest": {
+    "testEnvironment": "node"
+  }
+}
