@@ -1,4 +1,5 @@
-var postcss = require('postcss');
+const postcss = require('postcss');
+const path = require('path');
 
 const getUrl = decl => {
     var matches = /(url\(\s*['"]?)([^"')]+)(["']?\s*\))/g.exec(decl.value);
@@ -12,8 +13,19 @@ const getUrl = decl => {
 const plugin = postcss.plugin('postcss-preload-hovers', opts => {
     opts = opts || {};
 
+    opts.outputType = opts.outputType || "html";
+
     return (root, result) => {
-        var urlsToPreload = [];
+        if (opts.outputType && opts.outputType !== "html" && opts.outputType !== "js") {
+            return result.warn(`postcss-preload-hovers only accepts an outputType of "html" or "js"`);
+        }
+
+        const from = result.opts.from ? path.dirname(result.opts.from) : ".";
+        const to = result.opts.to ? path.dirname(result.opts.to) : ".";
+
+        const rebaseUrl = url => path.join(path.relative(from, to), url);
+
+        let urlsToPreload = [];
 
         // Get all URLs from hover pseudorules
         root.walkRules(/:hover/, rule => {
@@ -26,11 +38,21 @@ const plugin = postcss.plugin('postcss-preload-hovers', opts => {
         // We only care about images
         urlsToPreload = urlsToPreload.filter(url => /\.jpe?g$|\.png$|\.gif$|\.svg$/.test(url));
 
-        // A bit hacky, but write the HTML as comment nodes
+        // A bit hacky, but write the HTML or JS as comment nodes which we can then extract in the stringifier
         root.removeAll();
-        urlsToPreload.forEach(url => root.append({
-            text: `<link rel="preload" href="${url}" as="image">`
-        }));
+        urlsToPreload.forEach(url => {
+            url = rebaseUrl(url);
+
+            if (opts.outputType === "html") {
+                root.append({
+                    text: `<link rel="preload" href="${url}" as="image">`
+                });
+            } else if (opts.outputType === "js") {
+                root.append({
+                    text: `(function() { var link = document.createElement("link"); link.rel = "preload"; link.href = "${url}"; link.as = "image"; document.head.appendChild(link); })();`
+                });
+            }
+        });
     };
 });
 
