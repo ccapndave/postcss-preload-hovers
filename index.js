@@ -8,13 +8,13 @@ const getUrl = decl => {
 };
 
 /**
- * Find all rules with a :hover pseudoclass and (when used with the provided stringifier)
- * convert it into a set of <link> elements to preload these images.
+ * Find all rules with a :hover pseudoclass and prefetch them either via HTML or JS.
  */
-const plugin = postcss.plugin('postcss-preload-hovers', opts => {
+module.exports = postcss.plugin('postcss-preload-hovers', opts => {
     opts = opts || {};
 
     opts.outputType = opts.outputType || "html";
+    opts.rel = opts.rel || "prefetch";
 
     return (root, result) => {
         if (opts.outputType && opts.outputType !== "html" && opts.outputType !== "js") {
@@ -39,43 +39,33 @@ const plugin = postcss.plugin('postcss-preload-hovers', opts => {
         // Turn any image loaders into their appropriate HTML or JS representations
         preloaders = urlsToPreload
             .filter(url => /\.jpe?g$|\.png$|\.gif$|\.svg$/.test(url))
-            .map(url => rebaseUrl(url))
-            .map(url => {
-                if (opts.outputType === "html") {
-                    return `<link rel="preload" href="${url}" as="image">`;
-                } else if (opts.outputType === "js") {
-                    return `(function() { var link = document.createElement("link"); link.rel = "preload"; link.href = "${url}"; link.as = "image"; document.head.appendChild(link); })();`;
-                } else {
-                    result.warn("Unknown output type ${opts.outputType} (it shouldn't be possible to get here!)")
-                }
-            });
+            .map(url => rebaseUrl(url));
+
+        result = (function() {
+            if (opts.outputType === "html") {
+                return preloaders.map(url => `<link rel="${opts.rel}" href="${url}" as="image">`).join("\n");
+            } else if (opts.outputType === "js") {
+                const arrayString = "[" + preloaders.map(url => `"${url}"`).join(",") + "]";
+                return `${arrayString}.forEach(function(url) { var link = document.createElement("link"); link.rel = "${opts.rel}"; link.href = url; link.as = "image"; document.head.appendChild(link); });`;
+            } else {
+                result.warn("Unknown output type ${opts.outputType} (it shouldn't be possible to get here!)")
+            }
+        })();
 
         if (opts.filename) {
             // Write the results to a file
-            fs.writeFileSync(opts.filename, preloaders.join("\n"));
+            fs.writeFileSync(opts.filename, result);
             return;
         }
 
         if (opts.resultObj) {
             // Write the results to a shared object (very unfunctional, but a convenient and fast way to get data out)
-            opts.resultObj.data = preloaders.join("\n");
+            opts.resultObj.data = result;
             return
         }
 
         // Otherwise write the HTML or JS as comment nodes which we can then extract in the stringifier
         root.removeAll();
-        preloaders.forEach(text => root.append({ text }));
+        root.append({ text: result });
     };
 });
-
-/**
- * A stringifier to extract text from CSS comments.  Used together with the plugin
- * this extracts images in
- */
-const stringifier = (root, builder) => {
-    root.walkComments(comment => {
-        builder(comment.text + "\n");
-    });
-}
-
-module.exports = { plugin, stringifier };

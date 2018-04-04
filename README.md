@@ -19,19 +19,33 @@ first time a user rolls over one of these elements.
 ### Output example
 With `outputType: "html"` (or omitted as this is the default):
 ```html
-<link rel="preload" href="rollover.svg" as="image">
+<link rel="prefetch" href="rollover.svg" as="image">
 ```
 
 With `outputType: "js"`:
 ```js
-(function() { var link = document.createElement("link"); link.rel = "preload"; link.href = "rollover.svg"; link.as = "image"; document.head.appendChild(link); })();
+["rollover.svg"].forEach(function(url) { var link = document.createElement("link"); link.rel = "prefetch"; link.href = url; link.as = "image"; document.head.appendChild(link); });
 ```
 
 ## Usage
 
+### Transform directly
+This requires writing a custom stringifier (just copy the code below).
 ```js
-const { plugin, stringifier } = require('postcss-preload-hovers');
-postcss([ plugin(opts) ]).process(input, { stringifier });
+postcss([ require('postcss-preload-hovers')() ]).process(input, { stringifier: (root, builder) => root.walkComments(comment => builder(comment.text + "\n")) });
+```
+
+### Write to a file
+To write to a file provide a `filename` property.
+```js
+postcss([ require('postcss-preload-hovers')({ outputType: "js", filename: "output.js" }) ]).process(input)
+```
+
+### Mutate a shared object
+This is ugly, but useful.
+```js
+const resultObj = {};
+postcss([ require('postcss-preload-hovers')({ resultObj }) ]).process(input).then(_ => { /* The result will be available as a string at resultObj.data */ });
 ```
 
 See [PostCSS] docs for examples for your environment.
