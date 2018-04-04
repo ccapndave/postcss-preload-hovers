@@ -135,3 +135,18 @@ it("Deals correctly with relative paths", () => {
         .then(result => expect(result.css.trim()).toEqual(expectedPreloads.trim()))
         .catch(err => console.log(err));
 });
+
+it("Writes to a shared result object", () => {
+    const css = `
+        a:hover {
+            background-image: url(../../assets/1.svg);
+        }
+    `;
+
+    const expectedPreloads = `<link rel="preload" href="../assets/1.svg" as="image">`;
+
+    const resultObj = {};
+    postcss([ plugin({ resultObj }) ]).process(css, { stringifier, from: "styles/app.less", to: "../web/index.html" })
+        .then(_ => expect(resultObj.data.trim()).toEqual(expectedPreloads.trim()))
+        .catch(err => console.log(err));
+})

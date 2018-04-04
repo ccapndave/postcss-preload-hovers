@@ -5,8 +5,6 @@
 In our application we have found that it is necessary to preload images in CSS elements with the `:hover` pseudo-class, as the loading delay is very obvious the
 first time a user rolls over one of these elements.
 
-Unlike most PostCSS plugins, this outputs either HTML or JS and should be used accordingly.
-
 [PostCSS]: https://github.com/postcss/postcss
 [ci-img]:  https://travis-ci.org/ccapndave/postcss-preload-hovers.svg
 [ci]:      https://travis-ci.org/ccapndave/postcss-preload-hovers

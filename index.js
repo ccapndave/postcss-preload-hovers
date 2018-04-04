@@ -1,5 +1,6 @@
 const postcss = require('postcss');
 const path = require('path');
+const fs = require('fs');
 
 const getUrl = decl => {
     var matches = /(url\(\s*['"]?)([^"')]+)(["']?\s*\))/g.exec(decl.value);
@@ -17,7 +18,7 @@ const plugin = postcss.plugin('postcss-preload-hovers', opts => {
 
     return (root, result) => {
         if (opts.outputType && opts.outputType !== "html" && opts.outputType !== "js") {
-            return result.warn(`postcss-preload-hovers only accepts an outputType of "html" or "js"`);
+            return result.warn(`postcss-preload-hovers only accepts an outputType of "html", "js" or "file"`);
         }
 
         const from = result.opts.from ? path.dirname(result.opts.from) : ".";
@@ -35,24 +36,35 @@ const plugin = postcss.plugin('postcss-preload-hovers', opts => {
             });
         });
 
-        // We only care about images
-        urlsToPreload = urlsToPreload.filter(url => /\.jpe?g$|\.png$|\.gif$|\.svg$/.test(url));
+        // Turn any image loaders into their appropriate HTML or JS representations
+        preloaders = urlsToPreload
+            .filter(url => /\.jpe?g$|\.png$|\.gif$|\.svg$/.test(url))
+            .map(url => rebaseUrl(url))
+            .map(url => {
+                if (opts.outputType === "html") {
+                    return `<link rel="preload" href="${url}" as="image">`;
+                } else if (opts.outputType === "js") {
+                    return `(function() { var link = document.createElement("link"); link.rel = "preload"; link.href = "${url}"; link.as = "image"; document.head.appendChild(link); })();`;
+                } else {
+                    result.warn("Unknown output type ${opts.outputType} (it shouldn't be possible to get here!)")
+                }
+            });
 
-        // A bit hacky, but write the HTML or JS as comment nodes which we can then extract in the stringifier
+        if (opts.filename) {
+            // Write the results to a file
+            fs.writeFileSync(opts.filename, preloaders.join("\n"));
+            return;
+        }
+
+        if (opts.resultObj) {
+            // Write the results to a shared object (very unfunctional, but a convenient and fast way to get data out)
+            opts.resultObj.data = preloaders.join("\n");
+            return
+        }
+
+        // Otherwise write the HTML or JS as comment nodes which we can then extract in the stringifier
         root.removeAll();
-        urlsToPreload.forEach(url => {
-            url = rebaseUrl(url);
-
-            if (opts.outputType === "html") {
-                root.append({
-                    text: `<link rel="preload" href="${url}" as="image">`
-                });
-            } else if (opts.outputType === "js") {
-                root.append({
-                    text: `(function() { var link = document.createElement("link"); link.rel = "preload"; link.href = "${url}"; link.as = "image"; document.head.appendChild(link); })();`
-                });
-            }
-        });
+        preloaders.forEach(text => root.append({ text }));
     };
 });
 
