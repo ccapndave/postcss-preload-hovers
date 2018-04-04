@@ -1,6 +1,6 @@
 {
   "name": "postcss-preload-hovers",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A plugin to search for images with the :hover pseudo-class and generate links to preload them",
   "keywords": [
     "postcss",
