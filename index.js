@@ -14,11 +14,15 @@ module.exports = postcss.plugin('postcss-preload-hovers', opts => {
     opts = opts || {};
 
     opts.outputType = opts.outputType || "html";
-    opts.rel = opts.rel || "prefetch";
+    opts.preloadType = opts.preloadType || "prefetch";
 
     return (root, result) => {
         if (opts.outputType && opts.outputType !== "html" && opts.outputType !== "js") {
             return result.warn(`postcss-preload-hovers only accepts an outputType of "html", "js" or "file"`);
+        }
+
+        if (opts.preloadType !== "prefetch" && opts.preloadType !== "preload" && opts.preloadType !== "image") {
+            return result.warn(`postcss-preload-hovers only accepts an preloadType of "prefetch", "preload" or "image"`);
         }
 
         const from = result.opts.from ? path.dirname(result.opts.from) : ".";
@@ -43,10 +47,18 @@ module.exports = postcss.plugin('postcss-preload-hovers', opts => {
 
         result = (function() {
             if (opts.outputType === "html") {
-                return preloaders.map(url => `<link rel="${opts.rel}" href="${url}" as="image">`).join("\n");
+                if (opts.preloadType === "image") {
+                    return preloaders.map(url => `<img src="${url}" style="display: none;">`).join("\n");
+                } else {
+                    return preloaders.map(url => `<link rel="${opts.preloadType}" href="${url}" as="image">`).join("\n");
+                }
             } else if (opts.outputType === "js") {
                 const arrayString = "[" + preloaders.map(url => `"${url}"`).join(",") + "]";
-                return `${arrayString}.forEach(function(url) { var link = document.createElement("link"); link.rel = "${opts.rel}"; link.href = url; link.as = "image"; document.head.appendChild(link); });`;
+                if (opts.preloadType === "image") {
+                    return `${arrayString}.forEach(function(url) { var img = new Image(); img.src = url; });`;
+                } else {
+                    return `${arrayString}.forEach(function(url) { var link = document.createElement("link"); link.rel = "${opts.preloadType}"; link.href = url; link.as = "image"; document.head.appendChild(link); });`;
+                }
             } else {
                 result.warn("Unknown output type ${opts.outputType} (it shouldn't be possible to get here!)")
             }
