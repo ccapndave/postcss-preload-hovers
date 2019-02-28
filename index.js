@@ -28,7 +28,7 @@ module.exports = postcss.plugin('postcss-preload-hovers', opts => {
         const from = result.opts.from ? path.dirname(result.opts.from) : ".";
         const to = result.opts.to ? path.dirname(result.opts.to) : ".";
 
-        const rebaseUrl = url => path.join(path.relative(from, to), url);
+        const rebaseUrl = url => (url.startsWith("http")) ? url : path.join(path.relative(from, to), url);
 
         let urlsToPreload = [];
 
@@ -45,7 +45,7 @@ module.exports = postcss.plugin('postcss-preload-hovers', opts => {
             .filter(url => /\.jpe?g$|\.png$|\.gif$|\.svg$/.test(url))
             .map(url => rebaseUrl(url));
 
-        result = (function() {
+        result = (function () {
             if (opts.outputType === "html") {
                 if (opts.preloadType === "image") {
                     return preloaders.map(url => `<img src="${url}" style="display: none;">`).join("\n");
