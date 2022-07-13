@@ -9,6 +9,12 @@ first time a user rolls over one of these elements.
 [ci-img]:  https://travis-ci.org/ccapndave/postcss-preload-hovers.svg
 [ci]:      https://travis-ci.org/ccapndave/postcss-preload-hovers
 
+### Installation
+
+```
+npm install --save-dev postcss postcss-preload-hovers
+```
+
 ### Input example
 ```css
 .my-button:hover {
